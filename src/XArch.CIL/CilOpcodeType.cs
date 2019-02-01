@@ -1,6 +1,6 @@
 namespace XArch.CIL
 {
-    public enum IlOpcodeType
+    enum CilOpcodeType
     {
         Unknown,
         BaseInstruction,

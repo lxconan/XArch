@@ -2,27 +2,27 @@ using System;
 
 namespace XArch.CIL
 {
-    public struct OpcodeValue : IEquatable<OpcodeValue>
+    public struct CilOpcodeValue : IEquatable<CilOpcodeValue>
     {
         public byte FirstByte { get; }
         public byte SecondByte { get; }
         public int Size { get; }
 
-        public OpcodeValue(byte firstByte, byte secondByte)
+        public CilOpcodeValue(byte firstByte, byte secondByte)
         {
             FirstByte = firstByte;
             SecondByte = secondByte;
             Size = 2;
         }
 
-        public OpcodeValue(byte firstByte)
+        public CilOpcodeValue(byte firstByte)
         {
             FirstByte = firstByte;
             SecondByte = 0;
             Size = 1;
         }
 
-        public bool Equals(OpcodeValue other)
+        public bool Equals(CilOpcodeValue other)
         {
             return FirstByte == other.FirstByte && SecondByte == other.SecondByte &&
                    Size == other.Size;
@@ -31,7 +31,7 @@ namespace XArch.CIL
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            return obj is OpcodeValue other && Equals(other);
+            return obj is CilOpcodeValue other && Equals(other);
         }
 
         public override int GetHashCode()
@@ -45,12 +45,12 @@ namespace XArch.CIL
             }
         }
 
-        public static bool operator ==(OpcodeValue left, OpcodeValue right)
+        public static bool operator ==(CilOpcodeValue left, CilOpcodeValue right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(OpcodeValue left, OpcodeValue right)
+        public static bool operator !=(CilOpcodeValue left, CilOpcodeValue right)
         {
             return !(left == right);
         }
