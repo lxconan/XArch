@@ -21,7 +21,7 @@ namespace XArch.CIL
         [CilOperandTypeSize(4)]
         DwordString = 10,
         // The switch operand is a dynamic length table. Whose length is determined by first 4 bytes
-        [CilOperandTypeSize(-1)]
+        [CilOperandTypeSize]
         DwordSwitch = 11,
         [CilOperandTypeSize(4)]
         DwordToken = 12,
