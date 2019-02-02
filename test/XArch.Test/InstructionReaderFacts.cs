@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
 using XArch.CIL;
 using XArch.CIL.Formatters;
 using Xunit;
@@ -114,7 +117,7 @@ namespace XArch.Test
             };
         }
         
-        static byte[] GivenIlsForSimpleForLoopWithUnexpectedEOF()
+        static byte[] GivenIlsForSimpleForLoopWithUnexpectedEof()
         {
             // This is the ILs for simple loop program.
             //
@@ -173,29 +176,29 @@ namespace XArch.Test
             Assert.Equal(
                 new []
                 {
-                    "nop            ",
-                    "ldc.i4.0       ",
-                    "stloc.0        ",
-                    "br.s           1c",
-                    "nop            ",
-                    "ldstr          01 00 00 70",
-                    "ldloc.0        ",
-                    "box            15 00 00 01",
-                    "call           0f 00 00 0a",
-                    "call           10 00 00 0a",
-                    "nop            ",
-                    "nop            ",
-                    "ldloc.0        ",
-                    "ldc.i4.1       ",
-                    "add            ",
-                    "stloc.0        ",
-                    "ldloc.0        ",
-                    "ldc.i4.s       0a",
-                    "clt            ",
-                    "stloc.1        ",
-                    "ldloc.1        ",
-                    "brtrue.s       db",
-                    "ret            "
+                    "IL_0000 nop         ",
+                    "IL_0001 ldc.i4.0    ",
+                    "IL_0002 stloc.0     ",
+                    "IL_0003 br.s        1c",
+                    "IL_0005 nop         ",
+                    "IL_0006 ldstr       01 00 00 70",
+                    "IL_000b ldloc.0     ",
+                    "IL_000c box         15 00 00 01",
+                    "IL_0011 call        0f 00 00 0a",
+                    "IL_0016 call        10 00 00 0a",
+                    "IL_001b nop         ",
+                    "IL_001c nop         ",
+                    "IL_001d ldloc.0     ",
+                    "IL_001e ldc.i4.1    ",
+                    "IL_001f add         ",
+                    "IL_0020 stloc.0     ",
+                    "IL_0021 ldloc.0     ",
+                    "IL_0022 ldc.i4.s    0a",
+                    "IL_0024 clt         ",
+                    "IL_0026 stloc.1     ",
+                    "IL_0027 ldloc.1     ",
+                    "IL_0028 brtrue.s    db",
+                    "IL_002a ret         "
                 },
                 printedInstructions);
         }
@@ -214,7 +217,7 @@ namespace XArch.Test
         [Fact]
         public void should_throw_if_unexpect_end_of_stream_reached()
         {
-            byte[] sampleInstructions = GivenIlsForSimpleForLoopWithUnexpectedEOF();
+            byte[] sampleInstructions = GivenIlsForSimpleForLoopWithUnexpectedEof();
             
             var reader = new InstructionReader(new MemoryStream(sampleInstructions));
             var error = Assert.Throws<BadImageFormatException>(() => reader.ReadToEnd().ToArray());
@@ -223,15 +226,32 @@ namespace XArch.Test
         }
 
         [Fact]
-        public void should_decompile_all_public_methods_for_string_type()
+        public void should_cover_most_of_the_il_instructions()
         {
-            var methods = typeof(string).GetMethods()
-                .Where(m => m.MemberType == MemberTypes.Method)
-                .Select(m => new
-                    {
-                        Name = $"{m.Name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.FullName))})",
-                        Body = m.GetMethodBody()
-                    })
+            HashSet<string> fullIls = CilOpcode.OpcodeTable.Values.Select(o => o.Name).ToHashSet();
+            fullIls.ExceptWith(DecompileAllMethodsInAssembly(typeof(InstructionReader).Assembly));
+            fullIls.ExceptWith(DecompileAllMethodsInAssembly(typeof(string).Assembly));
+
+            output.WriteLine($"Remaining instructions count: {fullIls.Count}");
+            
+            foreach (string il in fullIls)
+            {
+                output.WriteLine(il);
+            }
+        }
+
+        static IEnumerable<string> DecompileAllMethodsInAssembly(Assembly assembly)
+        {
+            var methodsInCoreAssembly = assembly.GetTypes()
+                .Where(t => !t.IsAbstract && !t.IsAssignableFrom(typeof(Delegate)) && t.IsClass)
+                .SelectMany(
+                    t => t.GetMethods().Select(
+                        m => new
+                        {
+                            Name =
+                                $"{m.Name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.FullName))})",
+                            Body = m.GetMethodBody()
+                        }))
                 .Where(m => m.Body != null)
                 .Select(
                     m => new
@@ -240,12 +260,11 @@ namespace XArch.Test
                         Reader = new InstructionReader(new MemoryStream(m.Body.GetILAsByteArray()))
                     });
 
-            foreach (var method in methods)
-            {
-                Exception error = Record.Exception(() => method.Reader.ReadToEnd().ToArray());
-                if (error != null) { output.WriteLine(method.Name); }
-                Assert.Null(error);
-            }
+            HashSet<string> visitedInstructions = methodsInCoreAssembly
+                .SelectMany(m => m.Reader.ReadToEnd())
+                .Select(i => i.OpcodeName)
+                .ToHashSet();
+            return visitedInstructions;
         }
     }
 }

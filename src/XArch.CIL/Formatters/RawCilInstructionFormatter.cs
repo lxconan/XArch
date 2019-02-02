@@ -16,12 +16,12 @@ namespace XArch.CIL.Formatters
         {
             if (instruction == null) { throw new ArgumentNullException(nameof(instruction)); }
 
-            string opcodeName = instruction.OpcodeName.PadRight(15);
+            string opcodeName = instruction.OpcodeName.PadRight(12);
             string operandRawValue = string.Join(
                 " ",
                 instruction.OperandValue.Select(b => b.ToString("x2")));
 
-            return $"{opcodeName}{operandRawValue}";
+            return $"IL_{instruction.Offset:x4} {opcodeName}{operandRawValue}";
         } 
     }
 }
